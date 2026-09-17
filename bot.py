@@ -1,52 +1,47 @@
-import os
-import threading
-from http.server import HTTPServer, SimpleHTTPRequestHandler
 import discord
+import os
 from google import genai
 
-# === SERVIDOR FANTASMA PARA RENDER (UPTIMEROBOT) ===
-def iniciar_servidor():
-    puerto = int(os.environ.get("PORT", 8080))
-    servidor = HTTPServer(('0.0.0.0', puerto), SimpleHTTPRequestHandler)
-    servidor.serve_forever()
-
-threading.Thread(target=iniciar_servidor, daemon=True).start()
-
-# === LECTURA DE CLAVES SEGURAS DESDE RENDER ===
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+# 1. Configuración de credenciales
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# Configura tu cliente de Gemini
-client_genai = genai.Client(api_key=GEMINI_API_KEY)
-
-# Configura los intents de Discord
+# 2. Inicialización de clientes
 intents = discord.Intents.default()
 intents.message_content = True
+discord_client = discord.Client(intents=intents)
 
-class MyClient(discord.Client):
-    async def on_ready(self):
-        print(f'¡Conectado con éxito como {self.user}!')
+# Cliente actualizado para la nueva librería google-genai
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
-    async def on_message(self, message):
-        if message.author == self.user:
-            return
+@discord_client.event
+async def on_ready():
+    print(f'¡Conectado con éxito como {discord_client.user}!')
 
-        if self.user.mentioned_in(message):
-            prompt = message.content.replace(f'<@!{self.user.id}>', '').replace(f'<@{self.user.id}>', '').strip()
+@discord_client.event
+async def on_message(message):
+    # Evitar que el bot se responda a sí mismo
+    if message.author == discord_client.user:
+        return
+
+    # Responder solo si lo mencionan
+    if discord_client.user in message.mentions:
+        try:
+            # Limpiar la mención del texto para que Gemini lea solo la pregunta
+            prompt = message.content.replace(f'<@{discord_client.user.id}>', '').strip()
             
-            if not prompt:
-                await message.reply("¡Hola! ¿En qué te puedo ayudar hoy?")
-                return
+            # Llamada a la API usando el modelo que confirmaste en tu terminal
+            response = gemini_client.models.generate_content(
+                model='gemini-3.6-flash',
+                contents=prompt
+            )
+            
+            await message.reply(response.text)
+            
+        except Exception as e:
+            # LA SOLUCIÓN TRASCENDENTE: Escupir el error real en Discord
+            error_revelado = f"**El sistema falló. Este es el error técnico real:**\n```python\n{str(e)}\n```"
+            print(f"ERROR CRÍTICO: {e}")
+            await message.reply(error_revelado)
 
-            try:
-                response = client_genai.models.generate_content(
-                    model='gemini-3.5-flash',
-                    contents="Habla muy sarcástico, rebelde y directo. REGLA: Sé MUY breve, responde en máximo 1 o 2 oraciones. El usuario te dice esto: " + prompt
-                )
-                await message.reply(response.text)
-            except Exception as e: 
-                print(f"🔥 ERROR OCULTO: {e}", flush=True)
-                await message.reply("Ups, ocurrió un error al procesar tu solicitud.")    
-
-client = MyClient(intents=intents)
-client.run(DISCORD_TOKEN)
+discord_client.run(DISCORD_TOKEN)
