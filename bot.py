@@ -45,26 +45,25 @@ class YungLeanBot(discord.Client):
             prompt = message.content.replace(f'<@!{self.user.id}>', '').replace(f'<@{self.user.id}>', '').strip()
 
             if not prompt:
-                await message.reply("¿Qué quieres? Habla rápido o no molestes.")
+                await message.reply("¿Qué pasó?")
                 return
 
-            # Reintentos automáticos para evitar el error 503
             max_intentos = 3
             for intento in range(max_intentos):
                 try:
+                    # Prompt ajustado: Yung Lean, sarcástico y breve
                     response = gemini_client.models.generate_content(
                         model='gemini-3.6-flash',
-                        contents="Habla muy sarcástico, rebelde y directo. REGLA: Sé MUY breve, responde en máximo 1 o 2 oraciones. El usuario te dice esto: " + prompt
+                        contents=f"Actúa como Yung Lean: sarcástico, relajado. REGLA ESTRICTA: Responde en máximo 1 sola oración corta. El usuario te dice: {prompt}"
                     )
                     await message.reply(response.text)
-                    return # Si respondió con éxito, sale del bucle
+                    return
                 except Exception as e:
-                    print(f"Intento {intento + 1} falló por saturación de la API: {e}", flush=True)
+                    print(f"Intento {intento + 1} falló: {e}", flush=True)
                     if intento < max_intentos - 1:
-                        await asyncio.sleep(2) # Espera 2 segundos antes de reintentar
+                        await asyncio.sleep(2)
                     else:
-                        # Respuesta en personaje en lugar del recuadro de error
-                        await message.reply("Google está colapsado ahora mismo. Intenta hablarme de nuevo en 10 segundos.")
+                        await message.reply("Google se pegó un segundo, habla ahora.")
 
 client = YungLeanBot(intents=intents)
 client.run(DISCORD_TOKEN)
