@@ -40,6 +40,18 @@ class MyClient(discord.Client):
                 await message.reply("Ups, ocurrió un error al procesar tu solicitud.")
                 print(e)
 
+# === SERVIDOR FANTASMA PARA RENDER ===
+import threading
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+
+def iniciar_servidor():
+    puerto = int(os.environ.get("PORT", 8080))
+    servidor = HTTPServer(('0.0.0.0', puerto), SimpleHTTPRequestHandler)
+    servidor.serve_forever()
+
+threading.Thread(target=iniciar_servidor, daemon=True).start()
+# =====================================
+
 client = MyClient(intents=intents)
 client.run(os.environ.get("DISCORD_TOKEN"))
 
