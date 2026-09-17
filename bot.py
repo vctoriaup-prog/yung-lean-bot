@@ -30,7 +30,7 @@ class MyClient(discord.Client):
             try:
                 # Envía la pregunta a Gemini
                 response = client_genai.models.generate_content(
-                    model='gemini-3.6-flash',
+                    model='gemini-1.5-flash',
                     contents="Habla muy sarcástico, rebelde y directo. REGLA: Sé MUY breve, responde en máximo 1 o 2 oraciones. El usuario te dice esto: " + prompt
 )
                 
