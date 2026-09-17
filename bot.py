@@ -40,12 +40,12 @@ class MyClient(discord.Client):
 
             try:
                 response = client_genai.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model='gemini-2.5-flash',
                     contents="Habla muy sarcástico, rebelde y directo. REGLA: Sé MUY breve, responde en máximo 1 o 2 oraciones. El usuario te dice esto: " + prompt
                 )
                 await message.reply(response.text)
             except Exception as e: 
-                print(f"ERROR OCULTO: {e}", flush=True)
+                print(f"🔥 ERROR OCULTO: {e}", flush=True)
                 await message.reply("Ups, ocurrió un error al procesar tu solicitud.")    
 
 client = MyClient(intents=intents)
