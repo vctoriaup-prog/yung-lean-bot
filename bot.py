@@ -1,5 +1,6 @@
 import os
 import threading
+import asyncio
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import discord
 from google import genai
@@ -47,16 +48,23 @@ class YungLeanBot(discord.Client):
                 await message.reply("¿Qué quieres? Habla rápido o no molestes.")
                 return
 
-            try:
-                response = gemini_client.models.generate_content(
-                    model='gemini-3.6-flash',
-                    contents="Habla muy sarcástico, rebelde y directo. REGLA: Sé MUY breve, responde en máximo 1 o 2 oraciones. El usuario te dice esto: " + prompt
-                )
-                await message.reply(response.text)
-            except Exception as e:
-                error_msg = f"**Falló el modelo de IA:**\n```python\n{str(e)}\n```"
-                print(f"ERROR: {e}", flush=True)
-                await message.reply(error_msg)
+            # Reintentos automáticos para evitar el error 503
+            max_intentos = 3
+            for intento in range(max_intentos):
+                try:
+                    response = gemini_client.models.generate_content(
+                        model='gemini-3.6-flash',
+                        contents="Habla muy sarcástico, rebelde y directo. REGLA: Sé MUY breve, responde en máximo 1 o 2 oraciones. El usuario te dice esto: " + prompt
+                    )
+                    await message.reply(response.text)
+                    return # Si respondió con éxito, sale del bucle
+                except Exception as e:
+                    print(f"Intento {intento + 1} falló por saturación de la API: {e}", flush=True)
+                    if intento < max_intentos - 1:
+                        await asyncio.sleep(2) # Espera 2 segundos antes de reintentar
+                    else:
+                        # Respuesta en personaje en lugar del recuadro de error
+                        await message.reply("Google está colapsado ahora mismo. Intenta hablarme de nuevo en 10 segundos.")
 
 client = YungLeanBot(intents=intents)
 client.run(DISCORD_TOKEN)
