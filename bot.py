@@ -1,63 +1,62 @@
-import discord
 import os
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import discord
 from google import genai
 
-# 1. Servidor web ligero para el Health Check de Render
+# === 1. SERVIDOR FANTASMA PARA HEALTH CHECK DE RENDER ===
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"Bot activo")
-        
+        self.wfile.write(b"Bot OK")
+
     def do_HEAD(self):
         self.send_response(200)
         self.end_headers()
 
-def run_web_server():
-    port = int(os.environ.get("PORT", 10000))
-    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    print(f"Servidor Web de salud iniciado en el puerto {port}")
-    server.serve_forever()
+def iniciar_servidor():
+    puerto = int(os.environ.get("PORT", 10000))
+    servidor = HTTPServer(('0.0.0.0', puerto), HealthCheckHandler)
+    print(f"Servidor HTTP listo en el puerto {puerto}", flush=True)
+    servidor.serve_forever()
 
-# Iniciar servidor web en un hilo secundario
-threading.Thread(target=run_web_server, daemon=True).start()
+threading.Thread(target=iniciar_servidor, daemon=True).start()
 
-# 2. Configuración de credenciales
-DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
+# === 2. LECTURA DE CLAVES Y CONFIGURACIÓN ===
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-
-# 3. Inicialización de clientes
-intents = discord.Intents.default()
-intents.message_content = True
-discord_client = discord.Client(intents=intents)
+DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
-@discord_client.event
-async def on_ready():
-    print(f'¡Conectado con éxito como {discord_client.user}!')
+intents = discord.Intents.default()
+intents.message_content = True
 
-@discord_client.event
-async def on_message(message):
-    if message.author == discord_client.user:
-        return
+class YungLeanBot(discord.Client):
+    async def on_ready(self):
+        print(f'¡Conectado con éxito como {self.user}!', flush=True)
 
-    if discord_client.user in message.mentions:
-        try:
-            prompt = message.content.replace(f'<@{discord_client.user.id}>', '').strip()
-            
-            response = gemini_client.models.generate_content(
-                model='gemini-3.6-flash',
-                contents=prompt
-            )
-            
-            await message.reply(response.text)
-            
-        except Exception as e:
-            error_revelado = f"**El sistema falló. Este es el error técnico real:**\n```python\n{str(e)}\n```"
-            print(f"ERROR CRÍTICO: {e}")
-            await message.reply(error_revelado)
+    async def on_message(self, message):
+        if message.author == self.user:
+            return
 
-discord_client.run(DISCORD_TOKEN)
+        if self.user.mentioned_in(message):
+            prompt = message.content.replace(f'<@!{self.user.id}>', '').replace(f'<@{self.user.id}>', '').strip()
+
+            if not prompt:
+                await message.reply("¿Qué quieres? Habla rápido o no molestes.")
+                return
+
+            try:
+                response = gemini_client.models.generate_content(
+                    model='gemini-3.6-flash',
+                    contents="Habla muy sarcástico, rebelde y directo. REGLA: Sé MUY breve, responde en máximo 1 o 2 oraciones. El usuario te dice esto: " + prompt
+                )
+                await message.reply(response.text)
+            except Exception as e:
+                error_msg = f"**Falló el modelo de IA:**\n```python\n{str(e)}\n```"
+                print(f"ERROR: {e}", flush=True)
+                await message.reply(error_msg)
+
+client = YungLeanBot(intents=intents)
+client.run(DISCORD_TOKEN)
