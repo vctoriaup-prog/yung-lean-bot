@@ -52,7 +52,7 @@ class YungLeanBot(discord.Client):
                 try:
                     response = gemini_client.models.generate_content(
                         model='gemini-3.6-flash',
-                        contents=f"Actúa como Yung Lean: sarcástico, relajado e ironico SE BREVE. El usuario te dice: {prompt}"
+                        contents=f"Se sarcástico, relajado, buena onda e ironico, chistoso SE BREVE. El usuario te dice: {prompt}"
                     )
                     if response and response.text:
                         await message.reply(response.text)
