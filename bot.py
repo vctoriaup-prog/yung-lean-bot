@@ -32,7 +32,7 @@ gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 intents = discord.Intents.default()
 intents.message_content = True
 
-class YungLeanBot(discord.Client):
+class BuenaOndaBot(discord.Client):
     async def on_ready(self):
         print(f'¡Conectado como {self.user}!', flush=True)
 
@@ -44,25 +44,30 @@ class YungLeanBot(discord.Client):
             prompt = message.content.replace(f'<@!{self.user.id}>', '').replace(f'<@{self.user.id}>', '').strip()
 
             if not prompt:
-                await message.reply("¿Qué pasó?")
+                await message.reply("¡Hola! ¿Qué onda, en qué te ayudo?")
                 return
 
-            ultimo_error = ""
-            for intento in range(3):
-                try:
-                    response = gemini_client.models.generate_content(
-                        model='gemini-3.6-flash',
-                        contents=f"Se sarcástico,buena onda, ironico y chistoso. No escribas testamentos. El usuario te dice: {prompt}"
-                    )
-                    if response and response.text:
-                        await message.reply(response.text)
-                        return
-                except Exception as e:
-                    ultimo_error = str(e)
-                    print(f"[ERROR GEMINI] Intento {intento + 1}: {e}", flush=True)
-                    await asyncio.sleep(2)
+            # === ESTO HACE QUE APAREZCA "escribiendo..." EN DISCORD ===
+            async with message.channel.typing():
+                ultimo_error = ""
+                for intento in range(3):
+                    try:
+                        # === NUEVO PROMPT: VIBRA BUENA ONDA Y ADAPTABLE ===
+                        instruccion = f"Actúa como un colega muy buena onda, empático y chistoso, ironico. Adapta tu energía al tono del usuario. REGLA ESTRICTA: Responde natural, en máximo 1 o 2 oraciones cortas. El usuario te dice: {prompt}"
+                        
+                        response = gemini_client.models.generate_content(
+                            model='gemini-3.6-flash',
+                            contents=instruccion
+                        )
+                        if response and response.text:
+                            await message.reply(response.text)
+                            return
+                    except Exception as e:
+                        ultimo_error = str(e)
+                        print(f"[ERROR GEMINI] Intento {intento + 1}: {e}", flush=True)
+                        await asyncio.sleep(2)
 
-            await message.reply(f"Google falló. Detalle: `{ultimo_error}`")
+                await message.reply(f"Uy, Google me dejó en visto. Detalle técnico: `{ultimo_error}`")
 
-client = YungLeanBot(intents=intents)
+client = BuenaOndaBot(intents=intents)
 client.run(DISCORD_TOKEN)
